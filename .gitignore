@@ -1,0 +1,3 @@
+/vendor/*
+/api/*.json
+/.idea/*

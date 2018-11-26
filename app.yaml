@@ -1,0 +1,6 @@
+runtime: php72
+service: slimphp
+
+handlers:
+  - url: /.*
+    script: index.php
