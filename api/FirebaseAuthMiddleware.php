@@ -30,7 +30,12 @@ class FirebaseAuthMiddleware
         $firebase = (new Factory)
             ->withServiceAccount($serviceAccount)->create();
 
-        $token = str_replace("token ", "", $request->getHeader('Authorization')[0]);
+        $authHeader = $request->getHeader('Authorization');
+        if ($authHeader == null) {
+            return $this->getUnauthorizedResponse($response);
+        }
+
+        $token = str_replace("token ", "", $authHeader[0]);
 
         $verifiedIdToken = $this->verifyFirebaseToken($firebase, $token);
 
