@@ -17,6 +17,13 @@ class FirebaseAuthMiddleware
 {
     public function __invoke($request, $response, $next)
     {
+        if ($request->isOptions()) {
+            return $response
+                ->withHeader('Access-Control-Allow-Origin', '*')
+                ->withHeader('Access-Control-Allow-Headers', 'X-Requested-With, Content-Type, Accept, Origin, Authorization')
+                ->withHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+        }
+
 //        ServiceAccount::discover(); //Todo This should be all required on App Engine.
         $serviceAccount = ServiceAccount::fromJsonFile(__DIR__.'/tidy-muse-841-firebase-adminsdk-16exb-845798e107.json');
 
@@ -28,9 +35,7 @@ class FirebaseAuthMiddleware
         $verifiedIdToken = $this->verifyFirebaseToken($firebase, $token);
 
         if ($verifiedIdToken == null) {
-                $response = new \Slim\Http\Response(401);
-                $response->write("Unauthorized");
-                return $response;
+                return $this->getUnauthorizedResponse($response);
         }
 
         $userId = $verifiedIdToken->getClaim('user_id');
@@ -40,12 +45,19 @@ class FirebaseAuthMiddleware
         $response = $next($newRequest, $response);
 
         //CORS SETUP
-        $response = $response->withHeader('Access-Control-Allow-Origin', '*');
-        $response = $response->withHeader('Access-Control-Allow-Methods', '*');
-        $response = $response->withHeader("Access-Control-Allow-Credentials", "true");
+        return $response
+            ->withHeader('Access-Control-Allow-Origin', '*')
+            ->withHeader('Access-Control-Allow-Headers', 'X-Requested-With, Content-Type, Accept, Origin, Authorization')
+            ->withHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
 
-        return $response;
+    }
 
+    function getUnauthorizedResponse($response){
+        return $response->withHeader('Access-Control-Allow-Origin', '*')
+            ->withHeader('Access-Control-Allow-Headers', 'X-Requested-With, Content-Type, Accept, Origin, Authorization')
+            ->withHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
+            ->withStatus(401)
+            ->write("Unauthorized");
     }
 
     function verifyFirebaseToken($firebase, $tokenString){

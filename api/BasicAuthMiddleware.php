@@ -17,9 +17,16 @@ class BasicAuthMiddleware
 {
     public function __invoke($request, $response, $next)
     {
+        if ($request->isOptions()) {
+            return $response
+                ->withHeader('Access-Control-Allow-Origin', '*')
+                ->withHeader('Access-Control-Allow-Headers', 'X-Requested-With, Content-Type, Accept, Origin, Authorization')
+                ->withHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+        }
+
         $authHeader = $request->getHeader('Authorization');
         if ($authHeader == null) {
-            return $this->getUnauthorizedResponse();
+            return $this->getUnauthorizedResponse($response);
         }
 
         $token = str_replace("token ", "", $authHeader[0]);
@@ -27,21 +34,23 @@ class BasicAuthMiddleware
         $verifiedIdToken = $this->verifyToken($token);
 
         if (!$verifiedIdToken) {
-            return $this->getUnauthorizedResponse();
+            return $this->getUnauthorizedResponse($response);
         }
         $response = $next($request, $response);
 
         //CORS SETUP
-        $response = $response->withHeader('Access-Control-Allow-Origin', '*');
-        $response = $response->withHeader('Access-Control-Allow-Methods', '*');
-        $response = $response->withHeader("Access-Control-Allow-Credentials", "true");
-        return $response;
+        return $response
+            ->withHeader('Access-Control-Allow-Origin', '*')
+            ->withHeader('Access-Control-Allow-Headers', 'X-Requested-With, Content-Type, Accept, Origin, Authorization')
+            ->withHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
     }
 
-    function getUnauthorizedResponse(){
-        $response = new \Slim\Http\Response(401);
-        $response->write("Unauthorized");
-        return $response;
+    function getUnauthorizedResponse($response){
+        return $response->withHeader('Access-Control-Allow-Origin', '*')
+            ->withHeader('Access-Control-Allow-Headers', 'X-Requested-With, Content-Type, Accept, Origin, Authorization')
+            ->withHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
+            ->withStatus(401)
+            ->write("Unauthorized");
     }
 
     function verifyToken($tokenString){
